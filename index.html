@@ -1872,6 +1872,7 @@
                       </button>
                       <div v-if="activeMembersMenuIndex === idx" class="members-menu">
                         <button @click="openMemberForm(member, idx)">✏️ 編輯</button>
+                        <button @click="openPaymentForm(member, idx)">💰 新增付款</button>
                         <button class="text-red-600" @click="deleteMember(idx)">🗑️ 刪除</button>
                       </div>
                     </div>
@@ -1908,7 +1909,78 @@
                 </p>
               </div>
             </div>
-          </template>
+          
+    <!-- 成員支出表單 -->
+    <div v-if="showMemberExpenseForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="cute-card rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto" style="border-color:#E9D5C8;">
+        <h2 class="text-2xl font-bold text-center mb-6 text-gray-800">添加成員支出 💰</h2>
+        <form @submit.prevent="handleAddMemberExpense" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">選擇成員</label>
+            <select
+              v-model.number="memberExpenseFormData.memberIndex"
+              required
+              class="w-full p-4 border rounded-xl focus:ring-2 focus:outline-none"
+              :style="{ borderColor: '#E9D5C8', backgroundColor: '#FFFBF7' }"
+              @focus="$event.target.style.borderColor = '#E99D99'"
+              @blur="$event.target.style.borderColor = '#E9D5C8'"
+            >
+              <option value="">選擇成員</option>
+              <option v-for="(member, idx) in currentTripData.members" :key="idx" :value="idx">
+                {{ member.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">消費項目</label>
+            <input
+              v-model="memberExpenseFormData.description"
+              required
+              class="w-full p-4 border rounded-xl focus:ring-2 focus:outline-none"
+              :style="{ borderColor: '#E9D5C8', backgroundColor: '#FFFBF7' }"
+              @focus="$event.target.style.borderColor = '#E99D99'"
+              @blur="$event.target.style.borderColor = '#E9D5C8'"
+              placeholder="例如：午餐費用"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">金額 (HKD)</label>
+            <input
+              v-model.number="memberExpenseFormData.amount"
+              type="number"
+              required
+              step="0.01"
+              min="0"
+              class="w-full p-4 border rounded-xl focus:ring-2 focus:outline-none"
+              :style="{ borderColor: '#E9D5C8', backgroundColor: '#FFFBF7' }"
+              @focus="$event.target.style.borderColor = '#E99D99'"
+              @blur="$event.target.style.borderColor = '#E9D5C8'"
+              placeholder="輸入金額"
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">日期</label>
+            <input
+              v-model="memberExpenseFormData.date"
+              type="date"
+              required
+              class="w-full p-4 border rounded-xl focus:ring-2 focus:outline-none"
+              :style="{ borderColor: '#E9D5C8', backgroundColor: '#FFFBF7' }"
+              @focus="$event.target.style.borderColor = '#E99D99'"
+              @blur="$event.target.style.borderColor = '#E9D5C8'"
+            >
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button type="submit" class="flex-1 text-white font-bold py-3 px-6 rounded-xl hover:opacity-90 transition-all shadow-lg" style="background-color: #E99D99;">
+              ✓ 添加支出
+            </button>
+            <button type="button" @click="showMemberExpenseForm = false" class="flex-1 text-gray-700 font-bold py-3 px-6 rounded-xl hover:opacity-80 transition-all" style="background-color: #E9D5C8;">
+              ❌ 取消
+            </button>
+          </div>
+        </form>
+      </div>
+    </div></template>
 
           <!-- 設定頁 -->
           <template v-if="currentScreen === 'settings'">
@@ -2363,39 +2435,7 @@
               ❌ 取消
             </button>
           </div>
-        
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">誰付的？</label>
-            <select
-              v-model.number="expenseFormData.paidBy"
-              required
-              class="w-full p-4 border rounded-xl focus:ring-2 focus:outline-none"
-              :style="{ borderColor: '#E9D5C8', backgroundColor: '#FFFBF7' }"
-              @focus="$event.target.style.borderColor = '#E99D99'"
-              @blur="$event.target.style.borderColor = '#E9D5C8'"
-            >
-              <option value="">選擇成員</option>
-              <option v-for="(member, idx) in currentTripData.members" :key="idx" :value="idx">
-                {{ member.name }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">涉及誰？（空白代表所有人）</label>
-            <div class="space-y-2">
-              <label v-for="(member, idx) in currentTripData.members" :key="idx" class="flex items-center">
-                <input
-                  type="checkbox"
-                  :value="idx"
-                  v-model.number="expenseFormData.paidFor"
-                  class="rounded border-E9D5C8"
-                >
-                <span class="ml-2 text-sm text-gray-700">{{ member.name }}</span>
-              </label>
-            </div>
-          </div>
-          </form>
+        </form>
       </div>
     </div>
 
@@ -2602,7 +2642,8 @@
         const showChecklistForm = ref(false);
         const showMemberForm = ref(false);
         const showPaymentForm = ref(false);
-        const editingExpenseIndex = ref(-1);
+        const showMemberExpenseForm = ref(false);
+        const memberExpenseFormData = ref({ memberIndex: '', description: '', amount: 0, date: new Date().toISOString().split('T')[0] });
         const editingIndex = ref(-1);
         const selectedTripIndex = ref(0);
         const deletingIndex = ref(-1);
@@ -3506,6 +3547,37 @@
           activeMembersMenuIndex.value = -1;
         };
 
+        const handleAddMemberExpense = () => {
+          if (memberExpenseFormData.value.memberIndex === '' || memberExpenseFormData.value.memberIndex === null) {
+            alert('請選擇成員');
+            return;
+          }
+          if (!memberExpenseFormData.value.description) {
+            alert('請輸入消費項目');
+            return;
+          }
+          if (memberExpenseFormData.value.amount <= 0) {
+            alert('請輸入有效的金額');
+            return;
+          }
+
+          const memberIdx = parseInt(memberExpenseFormData.value.memberIndex);
+          if (memberIdx >= 0 && memberIdx < currentTripData.value.members.length) {
+            const member = currentTripData.value.members[memberIdx];
+            if (!member.payments) {
+              member.payments = [];
+            }
+            member.payments.push({
+              description: memberExpenseFormData.value.description,
+              amount: memberExpenseFormData.value.amount,
+              date: memberExpenseFormData.value.date
+            });
+          }
+
+          showMemberExpenseForm.value = false;
+          memberExpenseFormData.value = { memberIndex: '', description: '', amount: 0, date: new Date().toISOString().split('T')[0] };
+        };
+
         const toggleMembersMenu = (idx) => {
           activeMembersMenuIndex.value = activeMembersMenuIndex.value === idx ? -1 : idx;
         };
@@ -3681,30 +3753,6 @@
             checklist: [],
             members: []
           };
-
-        const deleteExpense = (index) => {
-          if (currentTripData.value.expenses && currentTripData.value.expenses[index]) {
-            currentTripData.value.expenses.splice(index, 1);
-          }
-        };
-
-        const editExpense = (index) => {
-          const expense = currentTripData.value.expenses?.[index];
-          if (expense) {
-            expenseFormData.value = {
-              title: expense.title || '',
-              category: expense.category || '',
-              originalAmount: expense.amount || 0,
-              amountHKD: expense.amountHKD || 0,
-              date: expense.date || new Date().toISOString().split('T')[0],
-              notes: expense.notes || '',
-              paidBy: expense.paidBy || '',
-              paidFor: expense.paidFor || []
-            };
-            editingExpenseIndex.value = index;
-            showAddExpenseForm.value = true;
-          }
-        };
         });
 
         const countdownDays = computed(() => {
@@ -3741,18 +3789,9 @@
               date: d,
               weekday: weekdayNames[dt.getDay()],
               day: dt.getDate()
-            getSettlementSummary,
-          getSettlementAmount,
-          getMemberTotalPayment,
-          getMemberOwedAmount,
-          editingExpenseIndex,
-          editExpense,
-          deleteExpense,
-          handleConfirmDelete,
-          deleteMember,
+            handleAddMemberExpense,
           memberExpenseFormData,
           showMemberExpenseForm,
-          handleAddMemberExpense,
           };
           });
         });
@@ -3888,47 +3927,21 @@
         const totalMembersCount = computed(() => membersList.value.length);
 
         const totalPayments = computed(() => {
-          // 計算所有支出的總金額（用於顯示）
-          return currentTripData.value.expenses?.reduce((sum, exp) => sum + (exp.amountHKD || 0), 0) || 0;
+          return membersList.value.reduce((sum, member) => sum + getMemberTotalPayment(member), 0);
         });
 
         const perPersonShare = computed(() => {
-          // 計算每人應付的分攤金額
-          const total = totalPayments.value;
-          const count = membersList.value.length;
+          const total = totalPayments.value; // 使用成員付款總和作為總支出基準
+          const count = totalMembersCount.value;
           return count > 0 ? total / count : 0;
         });
 
         const getMemberTotalPayment = (member) => {
-          // 計算該成員為旅行支付的總金額
-          const memberIndex = currentTripData.value.members?.indexOf(member);
-          if (memberIndex === -1 || memberIndex === undefined) return 0;
-
-          return currentTripData.value.expenses?.reduce((sum, exp) => {
-            return exp.paidBy === memberIndex ? sum + (exp.amountHKD || 0) : sum;
-          }, 0) || 0;
-        };
-
-        const getMemberOwedAmount = (member) => {
-          // 計算該成員應該分攤支付的總金額
-          const memberIndex = currentTripData.value.members?.indexOf(member);
-          if (memberIndex === -1 || memberIndex === undefined) return 0;
-
-          return currentTripData.value.expenses?.reduce((sum, exp) => {
-            // 如果 paidFor 為空或包含該成員，則該成員應該分攤
-            const paidFor = exp.paidFor && exp.paidFor.length > 0 ? exp.paidFor : [];
-            const applicableMembers = paidFor.length > 0 ? paidFor : Array.from({length: membersList.value.length}, (_, i) => i);
-
-            if (applicableMembers.includes(memberIndex)) {
-              // 該支出均分給 applicableMembers
-              return sum + (exp.amountHKD || 0) / applicableMembers.length;
-            }
-            return sum;
-          }, 0) || 0;
+          return (member.payments || []).reduce((sum, pay) => sum + (pay.amount || 0), 0);
         };
 
         const getSettlementAmount = (member) => {
-          return getMemberTotalPayment(member) - getMemberOwedAmount(member);
+          return getMemberTotalPayment(member) - perPersonShare.value;
         };
 
         const getSettlementText = (amount) => {
@@ -3958,27 +3971,179 @@
         });
 
         const getSettlementSummary = computed(() => {
-          // 生成結算摘要
-          const membersList = currentTripData.value.members || [];
-          const debtorList = [];
-          const creditorList = [];
-
-          membersList.forEach(member => {
-            const settlement = getSettlementAmount(member);
-            if (settlement < 0) {
-              debtorList.push({ name: member.name, amount: Math.abs(settlement) });
-            } else if (settlement > 0) {
-              creditorList.push({ name: member.name, amount: settlement });
+          if (membersList.value.length < 2) return '';
+          let summary = [];
+          membersList.value.forEach(member => {
+            const amount = getSettlementAmount(member);
+            if (amount < 0) {
+              summary.push(`${member.name} 需畀 ${formatCurrency(Math.abs(amount))} 畀 ${getCreditorName.value}`);
             }
           });
-
-          if (debtorList.length === 0) return '所有人已結清';
-          if (creditorList.length === 0) return '';
-
-          const firstDebtor = debtorList[0];
-          const firstCreditor = creditorList[0];
-          return `${firstDebtor.name} 需要轉帳 HKD $${firstDebtor.amount.toFixed(2)} 給 ${firstCreditor.name}`;
+          return summary.length > 0 ? summary.join('；') + '。' : '大家已經平衡！';
         });
+
+        return {
+          trips,
+          currentScreen,
+          showAddForm,
+          showAddActivityForm,
+          showEditAccommodationForm,
+          showDeleteConfirm,
+          showReservationTypeMenu,
+          showFlightForm,
+          showHotelForm,
+          showTicketForm,
+          showSetBudgetForm,
+          showAddExpenseForm,
+          showShoppingForm,
+          showChecklistForm,
+          editingIndex,
+          selectedTripIndex,
+          deletingIndex,
+          deleteType,
+          formData,
+          budgetFormData,
+          expenseFormData,
+          activityFormData,
+          accommodationFormData,
+          flightForm,
+          hotelForm,
+          ticketForm,
+          shoppingFormData,
+          checklistFormData,
+          selectedDateIndex,
+          activeActivityMenu,
+          editingActivityIndex,
+          editingReservationIndex,
+          activeReservationMenu,
+          currencyAmount,
+          selectedExpenseCategory,
+          expenseConversionHKD,
+          selectedShoppingFilter,
+          showShoppingFilterDropdown,
+          activeShoppingMenuIndex,
+          editingShoppingIndex,
+          activeChecklistMenuIndex,
+          editingChecklistIndex,
+          editingChecklistGroup,
+          showMemberForm,
+          showPaymentForm,
+          editingMemberIndex,
+          activeMembersMenuIndex,
+          currentMember,
+          memberFormData,
+          paymentFormData,
+          formatDateRangeEnglish,
+          formatDateDisplay,
+          formatTimeOnly,
+          formatDateOnly,
+          formatCurrency,
+          calculateDays,
+          getTotalExpense,
+          getRemainingBudget,
+          getBudgetPercentage,
+          getCategoryLabel,
+          getFilteredExpenses,
+          exchangeRate,
+          convertedAmount,
+          currentTripCurrency,
+          updateExpenseConversion,
+          openFilePicker,
+          handleImageChange,
+          handleFlightCertificate,
+          handleHotelCertificate,
+          handleTicketCertificate,
+          openAddForm,
+          closeForm,
+          openAddActivityForm,
+          closeAddActivityForm,
+          openActivityMenu,
+          openEditActivityForm,
+          confirmDeleteTrip,
+          confirmDeleteActivity,
+          openEditAccommodationForm,
+          closeEditAccommodationForm,
+          openReservationMenu,
+          openFlightForm,
+          closeFlightForm,
+          openHotelForm,
+          closeHotelForm,
+          openTicketForm,
+          closeTicketForm,
+          editReservation,
+          deleteReservation,
+          deleteExpense,
+          handleSaveActivity,
+          handleSaveAccommodation,
+          handleSaveFlight,
+          handleSaveHotel,
+          handleSaveTicket,
+          handleSetBudget,
+          handleAddExpense,
+          openShoppingForm,
+          closeShoppingForm,
+          handleSaveShoppingItem,
+          deleteShoppingItem,
+          toggleShoppingItemPurchased,
+          toggleShoppingFilterDropdown,
+          setShoppingFilter,
+          toggleShoppingMenu,
+          openChecklistForm,
+          closeChecklistForm,
+          handleSaveChecklistItem,
+          deleteChecklistItem,
+          toggleChecklistItemCompleted,
+          toggleChecklistMenu,
+          checklistGroups,
+          getChecklistGroupItems,
+          checklistGroupCount,
+          pendingChecklistCount,
+          completedChecklistCount,
+          checklistTagLabel,
+          checklistTagClass,
+          openMemberForm,
+          closeMemberForm,
+          handleSaveMember,
+          deleteMember,
+          toggleMembersMenu,
+          openPaymentForm,
+          closePaymentForm,
+          handleSavePayment,
+          enterTrip,
+          backToHome,
+          editTrip,
+          handleSaveTrip,
+          handleConfirmDelete,
+          currentTripData,
+          countdownDays,
+          countdownDaysText,
+          countdownProgress,
+          dateOptions,
+          currentSelectedDateLabel,
+          getCurrentDayNumber,
+          getCurrentDayWeather,
+          getCurrentDayAccommodation,
+          getCurrentDayActivities,
+          getActivityIcon,
+          pendingShoppingCount,
+          purchasedShoppingCount,
+          totalShoppingCount,
+          shoppingCategoryCount,
+          shoppingFilterLabel,
+          shoppingDisplayList,
+          shoppingTagLabel,
+          shoppingTagClass,
+          membersList,
+          totalMembersCount,
+          totalPayments,
+          perPersonShare,
+          getMemberTotalPayment,
+          getSettlementAmount,
+          getSettlementText,
+          getSettlementClass,
+          getCreditorName,
+          getSettlementSummary
+        };
       }
     }).mount('#app');
   </script>
